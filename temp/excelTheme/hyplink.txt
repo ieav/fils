@@ -1,0 +1,10 @@
+ fieldMapping.put("J", "stringField").setCellProcessor(new ExcelWriteCellProcessor() {
+            @Override
+            public void process(ExcelWriteContext context, Object fieldVal, Cell cell) {
+                if (fieldVal != null) {
+                    cell.setCellStyle(ExcelWriteTheme.linkStyleOfXSSF((XSSFWorkbook) cell.getSheet().getWorkbook()));
+                    cell.setCellType(XSSFCell.CELL_TYPE_FORMULA);
+//                    cell.setCellFormula("HYPERLINK(" + "\"https://www.baidu.com/\"" + ","+cell.getStringCellValue()+")");
+                }
+            }
+        });
