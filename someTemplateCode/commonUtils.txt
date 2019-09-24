@@ -1,0 +1,191 @@
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// excel reader
+
+ public JsonResponse imporVulDataExcel(MultipartFile mfile, String operator, String cVersionName, String cversionOfferingId) {
+        if(utils.isStrNull(operator)||utils.isStrNull(cVersionName)||utils.isStrNull(cversionOfferingId)){
+            return new JsonResponse("405","fail,参数存在空值！ 操作者、当前C 版本的名称和pbiId 都不可为空！","参数存在空值！ 操作者、当前C 版本的名称和pbiId 都不可为空！");
+        }
+
+        Boolean bool = utils.checkFile(mfile);
+        if(!bool){
+            return new JsonResponse(CommonConst.FAILED_STATUS,"文件类型不正确或为空!","文件类型不正确或为空!");
+        }
+
+        /*解析excel 获取数据*/
+        List<Map<String,Object>> vulUpdateParam=new ArrayList<>(); //更新数据
+
+        HashMap<String, ArrayList<String[]>> excelHashMap = new HashMap<>();
+        try {
+            excelHashMap=excelutilsForVul.analysisFile(mfile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        //////////////////////////////////////////////////////
+        
+        
+        
+
+  /***
+     * 解析excel文件
+     * @param file
+     * @return
+     * @throws IOException
+     */
+    public  HashMap<String, ArrayList<String[]>> analysisFile(MultipartFile file) throws IOException {
+        HashMap<String, ArrayList<String[]>> hashMap = new HashMap<>();
+        //获取workbook对象
+        Workbook workbook = null;
+        String filename = file.getOriginalFilename();
+        InputStream inputStream = file.getInputStream();
+        //根据后缀名是否excel文件
+        if(filename.endsWith("xls")){
+            //2003
+            workbook = new HSSFWorkbook(inputStream);
+        }else if(filename.endsWith("xlsx")){
+            //2007
+            workbook = new XSSFWorkbook(inputStream);
+        }
+
+        //创建对象，把每一行作为一个String数组，所以数组存到集合中
+        ArrayList<String[]> arrayList = new ArrayList<>();
+        short fixedColumns=0;  //设置固定只读几列数据;
+
+        if(workbook != null){
+            //循环sheet,现在是单sheet
+//            for(int sheetNum = 0;sheetNum < workbook.getNumberOfSheets();sheetNum++){
+            for(int sheetNum = 0;sheetNum <1;sheetNum++){  //修改值读取第一个sheet 页中的内容
+                //获取第一个sheet
+                Sheet sheet = workbook.getSheetAt(sheetNum);
+                if(sheet == null){
+                    hashMap.put("文件sheet为空!",arrayList);
+                    return hashMap;
+                }
+                //获取当前sheet开始行和结束行
+                int firstRowNum = sheet.getFirstRowNum();
+                int lastRowNum = sheet.getLastRowNum();
+                //循环开始，除了前两行
+                for(int rowNum = firstRowNum ;rowNum <= lastRowNum;rowNum++){
+                    //获取当前行
+                    Row row = sheet.getRow(rowNum);
+                    //获取当前行的开始列和结束列
+                    short firstCellNum = row.getFirstCellNum();
+                    short lastCellNum = row.getLastCellNum();
+
+                    if(fixedColumns==0){
+                        fixedColumns=lastCellNum;   //获取表头列数 从第二行 开始读取数据
+                        continue;
+                    }
+
+                    //获取总行数
+                    int lastCellNum2 = row.getPhysicalNumberOfCells();
+                    String[] strings = new String[fixedColumns];
+
+                    //循环当前行
+                    for(int cellNum = firstCellNum;cellNum < fixedColumns;cellNum++){
+                        Cell cell = row.getCell(cellNum);
+
+                       /* if( cell == null || "".equals(cell) || cell.getCellType()== Cell.CELL_TYPE_BLANK ){
+                            hashMap.put("第"+(rowNum+1)+"行,第"+(cellNum+1)+"列为空",arrayList);
+                            return hashMap;
+                        }*/
+
+                        String  cellValue = "";
+                        cellValue = getCellValue(cell);
+                        strings[cellNum] = cellValue;
+                    }
+                    arrayList.add(strings);
+
+                }
+            }
+        }
+        inputStream.close();
+        hashMap.put("OK",arrayList);
+        return hashMap;
+    }
+
+
+    //把每一个cell转换为string
+    public  String getCellValue(Cell cell){
+        String cellValue = "";
+        if(cell == null){
+            return cellValue;
+        }
+        //把数字转换成string，防止12.0这种情况
+        if(cell.getCellType() == cell.CELL_TYPE_NUMERIC){
+            cell.setCellType(cell.CELL_TYPE_STRING);
+        }
+        //判断数据的类型
+        switch (cell.getCellType()) {
+            case Cell.CELL_TYPE_NUMERIC: //数字0
+                cellValue = String.valueOf(cell.getNumericCellValue());
+                break;
+            case Cell.CELL_TYPE_STRING: //字符串1
+                cellValue = String.valueOf(cell.getStringCellValue());
+                break;
+            case Cell.CELL_TYPE_BOOLEAN: //Boolean
+                cellValue = String.valueOf(cell.getBooleanCellValue());
+                break;
+            case Cell.CELL_TYPE_FORMULA: //公式
+//                cellValue = String.valueOf(cell.getCellFormula());
+
+                    try {
+                        cellValue = String.valueOf(cell.getNumericCellValue());
+                    } catch (IllegalStateException e) {
+                        cellValue = String.valueOf(cell.getRichStringCellValue());
+                    }
+
+                break;
+            case Cell.CELL_TYPE_BLANK: //空值
+                cellValue = "";
+                break;
+            case Cell.CELL_TYPE_ERROR: //故障
+                cellValue = "非法字符";
+                break;
+            default:
+                cellValue = "未知类型";
+                break;
+        }
+        return cellValue;
+    }
+
+
+    /*截取 Hyperlink  超链接的值*/
+
+
+    //判断row是否为空
+    public  boolean isRowEmpty(Row row) {
+        for (int c = row.getFirstCellNum(); c < row.getLastCellNum(); c++) {
+            Cell cell = row.getCell(c);
+            if (cell != null && cell.getCellType() != Cell.CELL_TYPE_BLANK) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    //文件读取到指定的位置
+    public String saveFile(MultipartFile file) throws IOException {
+        MultipartFile update = file;
+        //文件中参数名字
+        String name = update.getName();
+        //文件名字
+        String originalFilename = update.getOriginalFilename();
+        //是否为空
+        boolean empty = update.isEmpty();
+        //传输文件到指定路径中
+        String path = "F://LDJS/boco/uploading/"+originalFilename;
+        update.transferTo(new File(path));
+        //文件类型
+        String contentType = update.getContentType();
+        InputStream inputStream = update.getInputStream();
+        inputStream.close();
+        //是否存在此路径
+        boolean path1 = new File(path).exists();
+        if(path1){
+            return "OK";
+        }else{
+            return "导入文件失败";
+        }
+
+    }
