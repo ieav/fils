@@ -1,0 +1,120 @@
+// 直接返回流文件
+if(response!=null){
+                    response.setContentType("application/vnd.ms-excel;charset=utf-8");
+                    fileName = response.encodeURL(new String(fileName.getBytes("utf-8"), "iso8859-1"));
+                    response.addHeader("Content-Disposition", "attachment;filename=" + fileName);
+                    OutputStream outputStream =response.getOutputStream();
+                    workbook.write(outputStream);
+                    outputStream.close();
+                }
+                
+                
+                
+// 读取文件返回流
+
+File file = new File(filepath);
+
+        InputStream ins = new BufferedInputStream(new FileInputStream(filepath));
+        byte [] buffer = new byte[ins.available()];
+        ins.read(buffer);
+        ins.close();
+//
+//        HttpServletResponse response = (HttpServletResponse) ActionContext.getContext().get(ServletActionContext.HTTP_RESPONSE);
+        response.reset();
+        response.addHeader("Content-Disposition", "attachment;filename=" + "vulExport.xlsx");
+        response.addHeader("Content-Length", "" + file.length());
+        OutputStream ous = new BufferedOutputStream(response.getOutputStream());
+        response.setContentType("application/octet-stream");
+        ous.write(buffer);
+        ous.flush();
+        ous.close();
+        
+        
+        ////////////////////////导出
+        
+     
+    /**
+     * 导出Excel 3.9
+     *
+     * @param sheetName sheet名称
+     * @param titleArrary  excel 标题
+     * @param dataList 数据列表
+     * @param filePath 文件路径
+     *  @param fileName 文件名
+     * @throws Exception
+     *
+     */
+    public void exportSXSSFExcel(String sheetName, String[] titleArrary, List<String[]> dataList, String filePath, HttpServletResponse response, String fileName){
+        long startt=System.currentTimeMillis();
+        System.out.println("==================excel write start !====================");
+
+        // 内存中缓存记录数 建议10000 不然会导致内存溢出
+        SXSSFWorkbook workbook = new SXSSFWorkbook(10000);
+        Sheet sheet = workbook.createSheet(sheetName);
+
+        Font titleFont = workbook.createFont();
+        titleFont.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);
+        CellStyle titleCellStyle = workbook.createCellStyle();
+        titleCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+        titleCellStyle.setFont(titleFont);
+//        titleCellStyle.setFillBackgroundColor();
+
+        int rowIndex = 0;
+        Row row = sheet.createRow(rowIndex++);
+
+        // 标题
+        int cellSize = titleArrary.length;
+        for (int i = 0; i < cellSize; i++) {
+            Cell cell = row.createCell(i);
+            cell.setCellStyle(titleCellStyle);
+            cell.setCellValue(titleArrary[i]);
+            if (titleArrary[i] != null) {
+                sheet.setColumnWidth(i, titleArrary[i].getBytes().length * 2 * 140);
+            }
+        }
+
+        // 数据
+        CellStyle dataCellStyle = workbook.createCellStyle();
+        dataCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+
+        for (String[] data : dataList) {
+            row = sheet.createRow(rowIndex);
+            // 遍历列
+            for (int i = 0; i < data.length; i++) {
+                Cell cell = row.createCell(i);
+                cell.setCellStyle(dataCellStyle);
+                cell.setCellValue(data[i]);
+            }
+            rowIndex++;
+        }
+        if (!fileName.endsWith(".xlsx")) {
+            fileName += ".xlsx";
+        }
+
+        try {
+                if(StringUtils.isNotEmpty(filePath)){
+                    File saveFile = new File(filePath);
+                    saveFile.createNewFile();
+
+                    if (!saveFile.exists()) {
+                        saveFile.getParentFile().mkdirs();
+                    }
+
+                    OutputStream outputStream = new FileOutputStream(saveFile);
+                    workbook.write(outputStream);
+                    outputStream.close();
+                }
+//                if(response!=null){
+//                    response.setContentType("application/vnd.ms-excel;charset=utf-8");
+//                    fileName = response.encodeURL(new String(fileName.getBytes("utf-8"), "iso8859-1"));
+//                    response.addHeader("Content-Disposition", "attachment;filename=" + fileName);
+//                    OutputStream outputStream =response.getOutputStream();
+//                    workbook.write(outputStream);
+//                    outputStream.close();
+//                }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("excel 写入耗时： "+(System.currentTimeMillis()-startt)+"  毫秒");
+    }
