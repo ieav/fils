@@ -1,11 +1,21 @@
-  */
+ /**
+     * 
+     *
+     * @param sheetName sheet名称
+     * @param titleArrary  excel 标题
+     * @param dataList 数据列表
+     * @param filePath 文件路径
+     *  @param fileName 文件名
+     * @throws Exception
+     *
+     */
     public void exportSXSSFExcel(String sheetName, String[] titleArrary, List<String[]> dataList, String filePath, HttpServletResponse response, String fileName){
 
         long startt=System.currentTimeMillis();
         System.out.println("==================excel write start !====================");
 
         // 内存中缓存记录数 建议10000 不然会导致内存溢出
-//        SXSSFWorkbook workbook = new SXSSFWorkbook(10000);
+//        SXSSFWorkbook workbook = new SXSSFWorkbook(1000);
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet(sheetName);
 
@@ -26,7 +36,11 @@
             cell.setCellStyle(titleCellStyle);
             cell.setCellValue(titleArrary[i]);
             if (titleArrary[i] != null) {
-                sheet.setColumnWidth(i, titleArrary[i].getBytes().length * 2 * 140);
+                if(i==0){
+                    sheet.setColumnWidth(i, titleArrary[i].getBytes().length * 2 * 600);
+                }else{
+                    sheet.setColumnWidth(i, titleArrary[i].getBytes().length * 2 * 180);
+                }
             }
         }
 
@@ -37,7 +51,11 @@
         // 锁定单元格样式
         XSSFCellStyle lockedStyle= (XSSFCellStyle) workbook.createCellStyle();
         lockedStyle.setLocked(true);
-//        lockedStyle.setFillPattern(XSSFCellStyle.SOLID_FOREGROUND);
+        lockedStyle.setBorderBottom(BorderStyle.THIN);
+        lockedStyle.setBorderLeft(BorderStyle.THIN);
+        lockedStyle.setBorderRight(BorderStyle.THIN);
+        lockedStyle.setBorderTop(BorderStyle.THIN);
+        lockedStyle.setFillPattern(XSSFCellStyle.SOLID_FOREGROUND);
         lockedStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         lockedStyle.setVerticalAlignment(XSSFCellStyle.VERTICAL_CENTER); // 垂直居中
 
@@ -45,6 +63,7 @@
         XSSFCellStyle lockedLinkStyle= (XSSFCellStyle) workbook.createCellStyle();
         XSSFFont font = (XSSFFont) workbook.createFont();
         font.setFontName(HSSFFont.FONT_ARIAL);
+
         //设置字体下划线
         font.setUnderline((byte) 1);
         //设置字体颜色
@@ -53,21 +72,27 @@
         lockedLinkStyle.setFont(font);
 
         lockedLinkStyle.setLocked(true);
-//        lockedLinkStyle.setFillPattern(XSSFCellStyle.SOLID_FOREGROUND);
+        lockedLinkStyle.setBorderBottom(BorderStyle.THIN);
+        lockedLinkStyle.setBorderLeft(BorderStyle.THIN);
+        lockedLinkStyle.setBorderRight(BorderStyle.THIN);
+        lockedLinkStyle.setBorderTop(BorderStyle.THIN);
+        lockedLinkStyle.setFillPattern(XSSFCellStyle.SOLID_FOREGROUND);
         lockedLinkStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         lockedLinkStyle.setVerticalAlignment(XSSFCellStyle.VERTICAL_CENTER); // 垂直居中
 
-
         // 非锁定链接样式
         XSSFCellStyle linkStyle = (XSSFCellStyle) workbook.createCellStyle();
-        linkStyle.setLocked(false);
         linkStyle.setFont(font);
+        linkStyle.setLocked(false);
+//        linkStyle.setBorderBottom(BorderStyle.THIN);
+//        linkStyle.setBorderLeft(BorderStyle.THIN);
+//        linkStyle.setBorderRight(BorderStyle.THIN);
+//        linkStyle.setBorderTop(BorderStyle.THIN);
 
-        // 隐藏列样式
-//        XSSFCellStyle hiddenStyle = (XSSFCellStyle) workbook.createCellStyle();
+        XSSFCellStyle unLockedStyle = (XSSFCellStyle) workbook.createCellStyle();
+        unLockedStyle.setLocked(false);
 
         CreationHelper createHelper = workbook.getCreationHelper();
-
         for (String[] data : dataList) {
             row = sheet.createRow(rowIndex);
             // 遍历列
@@ -114,19 +139,26 @@
                     cell.setCellValue(data[i]);
                 }else if(i==8){  /*8	漏洞修复状态,*/
                     cell.setCellValue(data[i]);
-                }else if(i==9&&!utils.isStrNull(data[i])) { /*9	DTS单号,*/
-                    //设置超链接
-                    Hyperlink link = createHelper.createHyperlink(Hyperlink.LINK_URL);
-                    link.setAddress(BASE_DTS_URL+data[i]);
-                    link.setLabel(data[i]);
-                    cell.setHyperlink(link);
+                    cell.setCellStyle(unLockedStyle);
+                }else if(i==9) { /*9	DTS单号,*/
+                    if(!utils.isStrNull(data[i])){
+                        //设置超链接
+                        Hyperlink link = createHelper.createHyperlink(Hyperlink.LINK_URL);
+                        link.setAddress(BASE_DTS_URL+data[i]);
+                        link.setLabel(data[i]);
+                        cell.setHyperlink(link);
 
-                    cell.setCellStyle(linkStyle);
-                    cell.setCellValue(data[i]);
+                        cell.setCellStyle(linkStyle);
+                        cell.setCellValue(data[i]);
 
-                }else if(i==10){ /*10	修复版本,*/
-                    cell.setCellStyle(lockedStyle);
+                    }else{
+                        cell.setCellStyle(unLockedStyle);
+                        cell.setCellValue(data[i]);
+                    }
+
+                }else if(i==10){ /*10	修复版本*/
                     cell.setCellValue(data[i]);
+                    cell.setCellStyle(unLockedStyle);
                 }else if(i==11||i==12){   /*11	pbi_id,*//*12	nodePbiId*/
                     cell.setCellStyle(lockedStyle);
                     cell.setCellValue(data[i]);
@@ -136,14 +168,16 @@
             rowIndex++;
         }
 
-        sheet.autoSizeColumn(0);
+        sheet.autoSizeColumn(2);sheet.autoSizeColumn(10);
+
+        sheet.setColumnHidden(11,true);
+        sheet.setColumnHidden(12,true);
 
         XSSFSheet sheet1= (XSSFSheet) sheet;
         sheet.protectSheet("abcdefg");
         ((XSSFSheet) sheet1).enableLocking();
 
         CTSheetProtection sheetProtection = sheet1.getCTWorksheet().getSheetProtection();
-
         sheetProtection.setSelectLockedCells(false);
         sheetProtection.setSelectUnlockedCells(false);
         sheetProtection.setFormatCells(true);
@@ -159,6 +193,17 @@
         sheetProtection.setPivotTables(true);
         sheetProtection.setObjects(true);
         sheetProtection.setScenarios(true);
+
+        sheet.setAutoFilter(CellRangeAddress.valueOf("A1:K1")); /* 添加筛选项 */
+
+        /* 下拉框 */
+        XSSFDataValidationHelper dvHelper = new XSSFDataValidationHelper((XSSFSheet) sheet);
+        XSSFDataValidationConstraint dvConstraint = (XSSFDataValidationConstraint) dvHelper.createExplicitListConstraint(new String[]{"Unaffected", "Risk-Accepted", "Unfixed","Fixed"});
+        CellRangeAddressList addressList = new CellRangeAddressList(1, dataList.size(), 8, 8);
+        XSSFDataValidation validation = (XSSFDataValidation)dvHelper.createValidation(dvConstraint, addressList);
+        validation.setShowErrorBox(true);
+        validation.setSuppressDropDownArrow(true);
+        sheet.addValidationData(validation);
 
         if (!fileName.endsWith(".xlsx")) {
             fileName += ".xlsx";
