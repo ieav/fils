@@ -1,0 +1,8 @@
+ easyUI 父子 界面 传值 
+
+https://blog.csdn.net/fightingboyws/article/details/79688057
+
+主要是父找子，直接找。$('#sonFrame').contents().find("#sonId")
+
+子找父，前加window.parent
+
