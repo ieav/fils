@@ -51,6 +51,16 @@ public class NormalUtils {
         }
         return true;
     }
+    
+    //避免toString 的时候 报空指针
+    public String getStringValue(Object object) {
+        if (null == object) {
+            return "";
+        } else {
+            return object.toString();
+        }
+    }
+    
 
     /**
      *  字符串为空使用空空格替代
