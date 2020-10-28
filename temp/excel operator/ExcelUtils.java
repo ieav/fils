@@ -170,6 +170,48 @@ public class ExcelOperatorUtils {
 
     /*截取 Hyperlink  超链接的值*/
 
+    public static String getCellStringValue(Cell cell) {
+		String cellValue = "";
+		if (cell != null) {
+			// cell.getCellTypeEnum(),获取单元格类型,case不同类型进行不同处理
+			switch (cell.getCellTypeEnum()) {
+			case _NONE: // 未知类型，用于表示初始化前的状态或缺少具体类型。仅供内部使用。
+				break;
+			case NUMERIC: // 数字类型 小数,整数,日期
+				
+				// 如果是数字类型的话,判断是不是日期类型
+				if (HSSFDateUtil.isCellDateFormatted(cell)) {
+					Date d = cell.getDateCellValue();
+					SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+					cellValue = formatter.format(d);
+				} else if(cell.getCellStyle().getDataFormat() == 57) {
+					Date d = cell.getDateCellValue();
+					SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM");
+					cellValue = formatter.format(d);
+				} else {
+					DecimalFormat df = new DecimalFormat("0");  
+					cellValue = df.format(cell.getNumericCellValue());  
+				}
+				
+				break;
+			case STRING: // 字符串类型
+				cellValue = cell.getStringCellValue();
+				break;
+			case FORMULA: // 公式类型
+				cellValue = String.valueOf(cell.getNumericCellValue());
+				break;
+			case BLANK: // 空白的单元格
+				break;
+			case BOOLEAN: // 布尔类型
+				break;
+			case ERROR: // 错误类型
+				break;
+			default:
+				break;
+			}
+		}
+		return cellValue;
+	}
 
     //判断row是否为空
     public  boolean isRowEmpty(Row row) {
