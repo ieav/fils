@@ -478,6 +478,7 @@ public class ExcelOperatorUtils {
             }
 //                if(response!=null){
 //                    response.setContentType("application/vnd.ms-excel;charset=utf-8");
+//                    fileName=URLEncoder.encode(fileName, StandardCharsets.UTF_8.name());
 //                    fileName = response.encodeURL(new String(fileName.getBytes("utf-8"), "iso8859-1"));
 //                    response.addHeader("Content-Disposition", "attachment;filename=" + fileName);
 //                    OutputStream outputStream =response.getOutputStream();
